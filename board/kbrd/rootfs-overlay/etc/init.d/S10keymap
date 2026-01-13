@@ -1,0 +1,13 @@
+#!/bin/sh
+
+start() {
+	if [ -x /bin/loadkeys ] && [ -f /usr/share/kbd/keymaps/fr.map.gz ]; then
+		echo "Setting console keymap to FR..."
+		loadkeys fr >/dev/null 2>&1 || true
+	fi
+}
+
+case "$1" in
+	start) start ;;
+	*) exit 0 ;;
+esac
