@@ -81,7 +81,7 @@ De type authentication
 Coller la clé publique
 
 # Tester l'accès
-ssh -T git@github.com
+ssh -T git@github.com 
 
 # Modifier l'accès au dépôt via SSH
 git remote set-url origin git@github.com:ubikyo/kbrd-os.git
