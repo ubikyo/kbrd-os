@@ -1,0 +1,15 @@
+#!/bin/sh
+case "$1" in
+  start)
+    echo "Starting nginx..."
+    nginx
+    ;;
+  stop)
+    killall nginx 2>/dev/null
+    ;;
+  restart)
+    $0 stop
+    $0 start
+    ;;
+esac
+exit 0

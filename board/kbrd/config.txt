@@ -1,0 +1,39 @@
+# Supprime le délai d'attente
+boot_delay=0
+
+force_turbo=1
+
+#A tester pour accélérer
+#hdmi_force_hotplug=1
+#hdmi_ignore_edid=0xa5000080
+
+start_file=start4.elf
+fixup_file=fixup4.dat
+
+kernel=Image
+
+# To use an external initramfs file
+#initramfs rootfs.cpio.gz
+
+# Disable overscan assuming the display supports displaying the full resolution
+# If the text shown on the screen disappears off the edge, comment this out
+disable_overscan=1
+
+# How much memory in MB to assign to the GPU on Pi models having
+# 256, 512 or 1024 MB total memory
+gpu_mem_256=100
+gpu_mem_512=100
+gpu_mem_1024=100
+
+# Enable UART0 for serial console on ttyAMA0
+dtoverlay=miniuart-bt
+
+# enable 64bits support
+arm_64bit=1
+
+# Active le wifi/bt
+#dtparam=krnbt=on
+
+# Supprime l'image de l'arc en ciel par défaut
+disable_splash=1
+avoid_warnings=1

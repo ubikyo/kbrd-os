@@ -1,15 +1,2 @@
 auto lo
 iface lo inet loopback
-
-# Interface Wi-Fi (wlan0)
-auto wlan0
-iface wlan0 inet dhcp
-    # On charge le module Wi-Fi juste avant de monter l'interface
-    pre-up modprobe brcmfmac
-    # On lance wpa_supplicant en arrière-plan (-B)
-    # -c : pointe bien vers ton fichier de config
-    pre-up wpa_supplicant -B -Dnl80211 -iwlan0 -c/etc/wpa_supplicant/wpa_supplicant-wlan0.conf
-    # Options DHCP : -b (background), -t 1 (1 tentative), -n (non-bloquant)
-    udhcpc_opts -b -t 1 -n
-    # Nettoyage à l'arrêt
-    post-down killall -q wpa_supplicant

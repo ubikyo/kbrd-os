@@ -1,0 +1,14 @@
+#!/bin/sh
+case "$1" in
+  start)
+    # -f : force le fond en noir si l'image est plus petite que l'écran
+    # -c : centre l'image au milieu
+    # -i : ignore les informations de fichier (mode silencieux)
+    fbv -f -c -i /etc/kbrd.png > /dev/null 2>&1
+    ;;
+  stop)
+    # fbv s'arrête de lui-même après l'affichage, mais au cas où :
+    killall fbv 2>/dev/null
+    ;;
+esac
+exit 0

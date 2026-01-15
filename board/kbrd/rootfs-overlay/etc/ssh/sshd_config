@@ -1,0 +1,28 @@
+Port 22
+Protocol 2
+
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Pas de root en SSH
+PermitRootLogin no
+
+# Auth
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+ChallengeResponseAuthentication no
+
+# Utilisateur autorisé
+AllowUsers kbrd
+
+# SFTP intégré (important)
+Subsystem sftp internal-sftp
+
+# VS Code friendly
+AllowTcpForwarding yes
+X11Forwarding no
+
+ClientAliveInterval 30
+ClientAliveCountMax 3
