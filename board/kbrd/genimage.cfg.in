@@ -4,8 +4,15 @@ image boot.vfat {
 #BOOT_FILES#
 		}
 	}
-
 	size = 32M
+}
+
+image data.ext4 {
+  ext4 {
+    label = "data"
+  }
+  srcpath = "${BOARD_DIR}/datafs-overlay"
+  size = 100M
 }
 
 image kbrd.img {
@@ -16,10 +23,18 @@ image kbrd.img {
 		partition-type = 0xC
 		bootable = "true"
 		image = "boot.vfat"
+		size = 128M
 	}
 
 	partition rootfs {
 		partition-type = 0x83
 		image = "rootfs.ext4"
+		size = 200M
 	}
+
+  	partition data {
+    	partition-type = 0x83
+    	image = "data.ext4"
+    	size = 100M
+	}	
 }

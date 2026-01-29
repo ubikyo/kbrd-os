@@ -1,5 +1,16 @@
 # Supprime le délai d'attente
-boot_delay=0
+#boot_delay=0
+
+
+boot_delay=1
+disable_splash=1
+enable_uart=1
+dtparam=uart0=on
+hdmi_force_hotplug=1
+hdmi_group=2
+hdmi_mode=82
+# ICI
+
 
 force_turbo=1
 
@@ -35,5 +46,9 @@ arm_64bit=1
 #dtparam=krnbt=on
 
 # Supprime l'image de l'arc en ciel par défaut
-disable_splash=1
-avoid_warnings=1
+#disable_splash=1
+#avoid_warnings=1
+
+# SPI pour l'écran/touch
+dtparam=spi=on
+dtoverlay=spi0-2cs-spidev

@@ -1,3 +1,2 @@
-menu "KBRD packages"
-source "$BR2_EXTERNAL_KBRD_PATH/package/mypkg/Config.in"
-endmenu
+source "$BR2_EXTERNAL_KBRD_OS_PATH/package/kbrd-ui/Config.in"
+source "$BR2_EXTERNAL_KBRD_OS_PATH/package/kbrd-api/Config.in"

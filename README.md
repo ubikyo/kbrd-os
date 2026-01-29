@@ -9,7 +9,11 @@ cd kbrd
 git clone https://github.com/buildroot/buildroot.git
 
 ## Cloner kbrd-os
-git clone https://github.com/ubikyo/kbrd-os.git
+Voir la partie git pour la clé
+
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/jquintard
+git clone git@github.com:ubikyo/kbrd-os.git
 
 ## Définir kbrd-os comme projet externe
 export BR2_EXTERNAL=$PWD/kbrd-os
@@ -21,25 +25,25 @@ make -C buildroot O=$PWD/output kbrd_defconfig
 
 ## Menuconfig pour modifier les options du système
 make -C buildroot O=$PWD/output menuconfig
+make -C buildroot O=$PWD/output savedefconfig BR2_DEFCONFIG=$PWD/kbrd-os/configs/kbrd_defconfig
 
-## Menuconfig pour modifier le noyau
+## Menuconfig pour modifier le noyau    
 make -C buildroot O=$PWD/output linux-menuconfig
+make -C buildroot O=$PWD/output linux-update-defconfig
 
 ## Menuconfig pour modifier busybox
 make -C buildroot O=$PWD/output busybox-menuconfig
+make -C buildroot O=$PWD/output busybox-update-config
 
-## Sauvegarder la configuration modifiée de menuconfig dans defconfig
-make -C buildroot O=$PWD/output savedefconfig BR2_DEFCONFIG=$PWD/kbrd-os/configs/kbrd_defconfig
+## Recompiler python (si ajout de modules)
+make -C buildroot O=$PWD/output python3-dirclean
+make -C buildroot O=$PWD/output python3
 
-## Sauvegarder la configuration modifiée du moyan dans defconfig
-make -C buildroot O=$PWD/output linux-update-defconfig
+## On compile
+./build.sh
 
-## On efface l'image précédente et on compile
-rm -rf output/target && \
-rm -f output/images/*.img && \
-make -C buildroot O=$PWD/output target && \
-make -C buildroot O=$PWD/output target-finalize && \
-make -C buildroot O=$PWD/output
+## Réinstaller un package
+make -C buildroot O=$PWD/output kbrd-ui-reinstall V=1
 
 # Nettoyage 
 ## soft
@@ -55,11 +59,26 @@ ssh-keygen -t ed25519 -a 100 -f ~/.ssh/kbrd -C "kbrd"
 chmod 600 ~/.ssh/kbrd
 chmod 644 ~/.ssh/kbrd.pub
 
+## Modifier .ssh/config
+nano ~/.ssh/config
+
+Host kbrd
+    HostName 172.16.12.200
+    User kbrd
+    StrictHostKeyChecking no
+    IdentityFile ~/.ssh/kbrd
+    IdentitiesOnly yes
+
+
 ## Récupération de la clé publique
 nano ~/.ssh/kbrd.pub
 
 ## Se connecter en SFTP
 sftp -i ~/.ssh/kbrd kbrd@172.16.12.200
+
+## Accès
+ssh-keygen -f '/home/jquintard/.ssh/known_hosts' -R '172.16.12.200'
+ssh kbrd
 
 # GIT
 
@@ -73,7 +92,7 @@ ssh-add ~/.ssh/jquintard
 ## Récupérer la clé publique
 cat ~/.ssh/jquintard.pub
 
-## Dans gihub
+## Dans github
 Settings
 SSH and GPG keys
 New SSH key
@@ -81,13 +100,12 @@ De type authentication
 Coller la clé publique
 
 # Tester l'accès
-ssh -T git@github.com 
+ssh -T git@github.com
 
 # Modifier l'accès au dépôt via SSH
 git remote set-url origin git@github.com:ubikyo/kbrd-os.git
 git remote set-url origin git@github.com:ubikyo/kbrd-ui.git
 git remote -v
-
 
 # Bootchart
 
@@ -99,3 +117,7 @@ cp -v bootchart/pybootchartgui/main.py.in bootchart/pybootchartgui/main.py
 ## Récupérer le fichier
 scp kbrd:/var/log/bootlog.tgz resources/bootlog.tgz
 python3 bootchart/pybootchartgui.py -f png -o resources/ resources/bootlog.tgz
+
+# Compilation du DTC
+cd ~/kbrd/kbrd-os/board/kbrd/cm4/overlay
+dtc -@ -I dts -O dtb -o spi0-2cs-spidev.dtbo spi0-2cs-spidev.dts

@@ -1,0 +1,5 @@
+config BR2_PACKAGE_KBRD_UI
+	bool "kbrd-ui"
+    select BR2_PACKAGE_KBRD_API
+	help
+	  KBRD UI

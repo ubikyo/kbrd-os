@@ -1,0 +1,18 @@
+#!/bin/sh
+
+(
+  # attend en silence que la route par defaut existe
+  while ! ip route | grep -q '^default '; do
+    sleep 1
+  done
+
+  # attend que la resolution DNS marche
+  while ! ping -c1 -W1 8.8.8.8 >/dev/null 2>&1; do
+    sleep 1
+  done
+
+  # sync unique, puis termine
+  ntpd -n -q -p pool.ntp.org >/dev/null 2>&1 || true
+) &
+
+exit 0

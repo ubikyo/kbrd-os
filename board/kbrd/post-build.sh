@@ -15,4 +15,5 @@ elif [ -d ${TARGET_DIR}/etc/systemd ]; then
        "${TARGET_DIR}/etc/systemd/system/getty.target.wants/getty@tty1.service"
 fi
 
+# Supprime dropbear
 rm -f "${TARGET_DIR}/etc/init.d/S50dropbear"
