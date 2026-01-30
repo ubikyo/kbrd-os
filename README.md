@@ -102,6 +102,9 @@ Coller la clé publique
 # Tester l'accès
 ssh -T git@github.com
 
+# Forcer git à utiliser la clé SSH
+git config --local core.sshCommand "ssh -i ~/.ssh/jquintard -o IdentitiesOnly=yes"
+
 # Modifier l'accès au dépôt via SSH
 git remote set-url origin git@github.com:ubikyo/kbrd-os.git
 git remote set-url origin git@github.com:ubikyo/kbrd-ui.git
