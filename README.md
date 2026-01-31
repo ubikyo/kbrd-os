@@ -102,7 +102,7 @@ Coller la clé publique
 # Tester l'accès
 ssh -T git@github.com
 
-# Forcer git à utiliser la clé SSH
+# Forcer git à utiliser la clé SSH (si permission denied sur vscode)
 git config --local core.sshCommand "ssh -i ~/.ssh/jquintard -o IdentitiesOnly=yes"
 
 # Modifier l'accès au dépôt via SSH

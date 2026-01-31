@@ -12,7 +12,8 @@ image data.ext4 {
     label = "data"
   }
   srcpath = "${BOARD_DIR}/datafs-overlay"
-  size = 100M
+  size = 10M
+  # size = 100M
 }
 
 image kbrd.img {
@@ -23,18 +24,22 @@ image kbrd.img {
 		partition-type = 0xC
 		bootable = "true"
 		image = "boot.vfat"
-		size = 128M
+		size = 64M
+		# size = 128M
 	}
 
 	partition rootfs {
 		partition-type = 0x83
 		image = "rootfs.ext4"
-		size = 200M
+		size = 150M
+		# A coller sur le menuconfig
 	}
 
   	partition data {
     	partition-type = 0x83
     	image = "data.ext4"
-    	size = 100M
+    	size = 10M
+		# size = 100M
+		# A coller sur le image.data
 	}	
 }

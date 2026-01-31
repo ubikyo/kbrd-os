@@ -1,19 +1,23 @@
 #!/bin/sh
 
-set -u
-set -e
+set -eu
 
-# Add a console on tty1
-if [ -e ${TARGET_DIR}/etc/inittab ]; then
-    grep -qE '^tty1::' ${TARGET_DIR}/etc/inittab || \
-	sed -i '/GENERIC_SERIAL/a\
-tty1::respawn:/sbin/getty -L  tty1 0 vt100 # HDMI console' ${TARGET_DIR}/etc/inittab
-# systemd doesn't use /etc/inittab, enable getty.tty1.service instead
-elif [ -d ${TARGET_DIR}/etc/systemd ]; then
-    mkdir -p "${TARGET_DIR}/etc/systemd/system/getty.target.wants"
-    ln -sf /lib/systemd/system/getty@.service \
-       "${TARGET_DIR}/etc/systemd/system/getty.target.wants/getty@tty1.service"
+# --------------------------------------------------------------------------------
+# Ajout d'une console sur tty1
+# --------------------------------------------------------------------------------
+
+INITTAB="${TARGET_DIR}/etc/inittab"
+
+if [ -f "${INITTAB}" ]; then
+  # Ajoute tty1 seulement si absent
+  grep -q '^tty1::' "${INITTAB}" || \
+    sed -i '/GENERIC_SERIAL/a\
+tty1::respawn:/sbin/getty -L tty1 0 vt100 # HDMI console' "${INITTAB}"
 fi
 
-# Supprime dropbear
+
+# --------------------------------------------------------------------------------
+# On supprime dropbear
+# --------------------------------------------------------------------------------
+
 rm -f "${TARGET_DIR}/etc/init.d/S50dropbear"

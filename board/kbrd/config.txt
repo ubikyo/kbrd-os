@@ -1,15 +1,14 @@
 # Supprime le délai d'attente
-#boot_delay=0
+boot_delay=0
 
 
-boot_delay=1
-disable_splash=1
-enable_uart=1
-dtparam=uart0=on
-hdmi_force_hotplug=1
-hdmi_group=2
-hdmi_mode=82
-# ICI
+#boot_delay=1
+#disable_splash=1
+#enable_uart=1
+#dtparam=uart0=on
+#hdmi_force_hotplug=1
+#hdmi_group=2
+#hdmi_mode=82
 
 
 force_turbo=1
