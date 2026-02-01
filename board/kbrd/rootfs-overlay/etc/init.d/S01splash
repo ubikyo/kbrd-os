@@ -1,14 +1,18 @@
 #!/bin/sh
 case "$1" in
   start)
-    # -f : force le fond en noir si l'image est plus petite que l'écran
-    # -c : centre l'image au milieu
-    # -i : ignore les informations de fichier (mode silencieux)
-    fbv -f -c -i /etc/kbrd.png > /dev/null 2>&1
+    # -a : quitte automatiquement après l'affichage
+    # -f : plein écran
+    # -c : centré
+    # &  : lance en arrière-plan pour ne pas bloquer le boot
+    FRAMEBUFFER=/dev/fb1 fbv -a -f -c /etc/kbrd.png > /dev/null 2>&1 &
     ;;
   stop)
-    # fbv s'arrête de lui-même après l'affichage, mais au cas où :
     killall fbv 2>/dev/null
+    ;;
+  *)
+    echo "Usage: $0 {start|stop}"
+    exit 1
     ;;
 esac
 exit 0

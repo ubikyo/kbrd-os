@@ -120,7 +120,3 @@ cp -v bootchart/pybootchartgui/main.py.in bootchart/pybootchartgui/main.py
 ## Récupérer le fichier
 scp kbrd:/var/log/bootlog.tgz resources/bootlog.tgz
 python3 bootchart/pybootchartgui.py -f png -o resources/ resources/bootlog.tgz
-
-# Compilation du DTC
-cd ~/kbrd/kbrd-os/board/kbrd/cm4/overlay
-dtc -@ -I dts -O dtb -o spi0-2cs-spidev.dtbo spi0-2cs-spidev.dts

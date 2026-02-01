@@ -54,6 +54,14 @@ sed "s|#BOOT_FILES#|${BOOT_FILES}|" "${BOARD_DIR}/genimage.cfg.in" > "${GENIMAGE
 
 
 # --------------------------------------------------------------------------------
+# On copie les overlays pour l'écran/touchscreen de dev
+# --------------------------------------------------------------------------------
+
+mkdir -p "${BINARIES_DIR}/rpi-firmware/overlays"
+cp "${BOARD_DIR}/overlays/mhs35.dtbo" "${BINARIES_DIR}/rpi-firmware/overlays/"
+
+
+# --------------------------------------------------------------------------------
 # On génère l'image finale avec genimage
 # --------------------------------------------------------------------------------
 
