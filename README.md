@@ -40,7 +40,9 @@ make -C buildroot O=$PWD/output python3-dirclean
 make -C buildroot O=$PWD/output python3
 
 ## On compile
-./build.sh
+./build-debug.sh
+./build-dev.sh
+./build-prod.sh
     
 ## Réinstaller un package
 make -C buildroot O=$PWD/output kbrd-ui-reinstall V=1

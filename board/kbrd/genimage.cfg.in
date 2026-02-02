@@ -31,7 +31,7 @@ image kbrd.img {
 	partition rootfs {
 		partition-type = 0x83
 		image = "rootfs.ext4"
-		size = 150M
+		size = 200M
 		# A coller sur le menuconfig
 	}
 

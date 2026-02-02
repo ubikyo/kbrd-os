@@ -29,18 +29,15 @@ arm_64bit=1
 
 # Supprime l'image de l'arc en ciel par défaut
 disable_splash=1
-avoid_warnings=1
+
+avoid_warnings=2
 
 # SPI pour l'écran/touch
 [all]
-hdmi_force_hotplug=1
 dtparam=i2c_arm=on
 dtparam=spi=on
 enable_uart=1
-dtoverlay=mhs35:rotate=90
-dtoverlay=vc4-kms-v3d,no_display
-hdmi_group=2
-hdmi_mode=1
-hdmi_mode=87
-hdmi_cvt 480 320 60 6 0 0 0
-hdmi_drive=2
+
+disable_fw_kms_setup=1
+dtoverlay=piscreen,drm
+dtoverlay=vc4-fkms-v3d,no_display

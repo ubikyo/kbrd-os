@@ -5,7 +5,7 @@ case "$1" in
     # -f : plein écran
     # -c : centré
     # &  : lance en arrière-plan pour ne pas bloquer le boot
-    FRAMEBUFFER=/dev/fb1 fbv -a -f -c /etc/kbrd.png > /dev/null 2>&1 &
+    fbv -a -f -c /etc/kbrd.png > /dev/null 2>&1 &
     ;;
   stop)
     killall fbv 2>/dev/null
