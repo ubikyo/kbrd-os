@@ -41,7 +41,7 @@ make -C buildroot O=$PWD/output python3
 
 ## On compile
 ./build.sh
-
+    
 ## Réinstaller un package
 make -C buildroot O=$PWD/output kbrd-ui-reinstall V=1
 
