@@ -3,7 +3,6 @@ case "$1" in
   start)
     printf "Loading kernel modules: "
     modprobe brcmfmac
-    echo "OK"
     ;;
   stop)
     ;;

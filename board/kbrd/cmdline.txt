@@ -1,1 +1,1 @@
-root=/dev/mmcblk0p2 rootfstype=ext4 rootwait console=tty3 quiet loglevel=3 vt.global_cursor_default=0 consoleblank=0 console=ttyAMA0,115200 ipv6.disable=1 init=/sbin/bootchartd video=SPI-1:480x320@60
+root=/dev/mmcblk0p2 rootfstype=ext4 rootwait fbcon=map:10 console=tty1 drm.debug=0 earlycon=pl011,mmio32,0xfe201000 ignore_loglevel nokaslr loglevel=7 vt.global_cursor_default=0 console=ttyAMA0,115200 ipv6.disable=1 init=/sbin/bootchartd

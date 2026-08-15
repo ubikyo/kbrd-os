@@ -19,7 +19,7 @@ git clone git@github.com:ubikyo/kbrd-os.git
 export BR2_EXTERNAL=$PWD/kbrd-os
 
 ## Créer une configuration depuis le defconfig dans le répertoire output
-make -C buildroot O=$PWD/output kbrd_defconfig
+make -C buildroot O=$PWD/output BR2_EXTERNAL=$PWD/kbrd-os kbrd_defconfig
 
 # Si nécessaire
 
@@ -122,3 +122,13 @@ cp -v bootchart/pybootchartgui/main.py.in bootchart/pybootchartgui/main.py
 ## Récupérer le fichier
 scp kbrd:/var/log/bootlog.tgz resources/bootlog.tgz
 python3 bootchart/pybootchartgui.py -f png -o resources/ resources/bootlog.tgz
+
+
+
+# Exporter vers l'EMMC
+./rpiboot -d mass-storage-gadget64/
+diskutil list
+sudo -i
+pv output/images/kbrd.img | sudo dd of=/dev/rdisk5 bs=4m
+sync
+diskutil eject /dev/disk5
