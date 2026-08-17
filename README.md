@@ -71,15 +71,14 @@ Host kbrd
     IdentityFile ~/.ssh/kbrd
     IdentitiesOnly yes
 
-
 ## Récupération de la clé publique
 nano ~/.ssh/kbrd.pub
 
 ## Se connecter en SFTP
 sftp -i ~/.ssh/kbrd kbrd@172.16.12.200
 
-## Accès
-ssh-keygen -f '/home/jquintard/.ssh/known_hosts' -R '172.16.12.200'
+## Se connecter via SSH (après avoir créé .ssh/config)
+ssh-keygen -f '/Users/jquintard/.ssh/known_hosts' -R '192.168.1.142'
 ssh kbrd
 
 # GIT
@@ -129,6 +128,7 @@ python3 bootchart/pybootchartgui.py -f png -o resources/ resources/bootlog.tgz
 ./rpiboot -d mass-storage-gadget64/
 diskutil list
 sudo -i
-pv output/images/kbrd.img | sudo dd of=/dev/rdisk5 bs=4m
+diskutil unmountDisk /dev/disk5
+pv /Volumes/kbrd/output/images/kbrd.img | sudo dd of=/dev/rdisk5 bs=4m
 sync
 diskutil eject /dev/disk5

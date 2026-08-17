@@ -1,4 +1,4 @@
-uart_2ndstage=1
+# --- UART ---
 enable_uart=1
 core_freq_min=500
 
@@ -13,19 +13,20 @@ start_file=start4.elf
 fixup_file=fixup4.dat
 kernel=Image
 
-# --- GPU ---
-#gpu_mem=128
-
-# SPI pour l'écran/touch
+# --- I2C / périphériques ---
 dtparam=i2c_vc=on
-#dtparam=i2c_arm=on
+dtoverlay=disable-bt
+
+# --- DRM / GPU / écran DSI ---
 dtoverlay=vc4-kms-v3d
 dtoverlay=vc4-kms-dsi-waveshare-panel-v2,10_1_inch_a
+
 max_framebuffers=2
 disable_fw_kms_setup=1
 
+# --- ARM ---
 arm_64bit=1
-
-disable_overscan=1
-
 arm_boost=1
+
+# --- Affichage ---
+disable_overscan=1

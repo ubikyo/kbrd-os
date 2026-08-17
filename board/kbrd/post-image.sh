@@ -37,7 +37,7 @@ install -D -m 0644 "${BOARD_DIR}/cmdline.txt" "${BINARIES_DIR}/rpi-firmware/cmdl
 
 
 # --------------------------------------------------------------------------------
-# On copier les fichiers boot dans genimage.cfg
+# On copie les fichiers boot dans genimage.cfg
 # --------------------------------------------------------------------------------
 
 FILES=()
@@ -54,11 +54,24 @@ sed "s|#BOOT_FILES#|${BOOT_FILES}|" "${BOARD_DIR}/genimage.cfg.in" > "${GENIMAGE
 
 
 # --------------------------------------------------------------------------------
-# On copie les overlays pour l'écran/touchscreen de dev
+# On copie tous les overlays vc4-kms nécessaires depuis notre propre arbre kernel
+# (jamais depuis rpi-firmware ni un fichier externe), pour garantir la
+# correspondance des labels DT entre le .dtb de base et les overlays.
 # --------------------------------------------------------------------------------
 
+LINUX_BUILD_DIR="$(find "${BUILD_DIR}" -maxdepth 1 -iname "linux-rpi-*" ! -iname "linux-headers-*" | head -n1)"
+
 mkdir -p "${BINARIES_DIR}/rpi-firmware/overlays"
-cp -f "${BOARD_DIR}/overlays/vc4-kms-dsi-waveshare-panel-v2.dtbo" "${BINARIES_DIR}/rpi-firmware/overlays/"
+
+# KMS VC4 pour BCM2711 / CM4
+cp -f \
+  "${LINUX_BUILD_DIR}/arch/arm64/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo" \
+  "${BINARIES_DIR}/rpi-firmware/overlays/vc4-kms-v3d.dtbo"
+
+# Panel Waveshare
+cp -f \
+  "${LINUX_BUILD_DIR}/arch/arm64/boot/dts/overlays/vc4-kms-dsi-waveshare-panel-v2.dtbo" \
+  "${BINARIES_DIR}/rpi-firmware/overlays/vc4-kms-dsi-waveshare-panel-v2.dtbo"
 
 # --------------------------------------------------------------------------------
 # On génère l'image finale avec genimage
