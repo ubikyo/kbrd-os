@@ -1,0 +1,5 @@
+config BR2_PACKAGE_KBRD_WEB
+	bool "kbrd-web"
+    select BR2_PACKAGE_KBRD_API
+	help
+	  KBRD WEB

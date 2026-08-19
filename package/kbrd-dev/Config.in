@@ -1,6 +1,8 @@
 config BR2_PACKAGE_KBRD_DEV
 	bool "kbrd-dev"
 	depends on BR2_PACKAGE_PYTHON3
-	select BR2_PACKAGE_PYTHON_FLASK
+
+	select BR2_PACKAGE_PYTHON_KIVY
+
 	help
-	  KBRD DEV
+	  KBRD graphical user interface.

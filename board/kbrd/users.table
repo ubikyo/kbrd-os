@@ -1,2 +1,4 @@
-kbrd 1000 kbrd 1000 =061327 /home/kbrd /bin/bash - -
-www-data 33 www-data 33 * - - - -
+video -1 video -1 * - - - - -
+input -1 input -1 * - - - - -
+kbrd 1000 kbrd 1000 =061327 /home/kbrd /bin/bash video,input -
+www-data 33 www-data 33 * - - - - -
