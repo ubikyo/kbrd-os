@@ -1,7 +1,6 @@
 #!/bin/sh
 set -eu
 
-
 # --------------------------------------------------------------------------------
 # Dossier data pour le montage du volume data
 # --------------------------------------------------------------------------------
@@ -20,5 +19,11 @@ install -d -m 755 -o root -g root \
 
 # On définit le propriétaire pour www-data (uid/gid 33)
 chown -R 33:33 \
-  "${TARGET_DIR}/var/www" \
   "${TARGET_DIR}/var/cache/nginx"
+
+# On définit kbrd comme propriétaire du dossier web
+chown -R 1000:1000 \
+  "${TARGET_DIR}/var/www"
+
+chmod -R u=rwX,go=rX \
+  "${TARGET_DIR}/var/www"
