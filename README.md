@@ -1,12 +1,52 @@
-# Installation
+# KBRD OS
+Système d'exploitation à destination d'un raspberry CM4.
 
-## Workspace de base
-Créer un dossier kbrd
-mkdir kbrd
-cd kbrd
+## Développement
+Pour le développement, le rasberry est associé à une carte Waveshare [CM4-IO-BASE-A](https://www.waveshare.com/wiki/CM4-IO-BASE-A) et un écran Wareshare [10.1-DSI-TOUCH-A](https://www.waveshare.com/wiki/10.1-DSI-TOUCH-A). Uu adaptateur USB to TTL [SH-U07A](https://www.deshide.com/product-details_SH-U07A.html) est connecté entre les ports GND/RX/TX de l'adaptateur et les ports GND/TX/RX du CM4-IO-BASE-A pour obtenir la console **ttyAMA0**.
 
-## Cloner buildroot
-git clone https://github.com/buildroot/buildroot.git
+### Workspace
+
+Créer une VM type Ubuntu et créer un dossier
+
+
+
+### Configuration des options du système
+
+Modifier la configuration :
+
+    cd kbrd
+    make -C buildroot O=$PWD/output menuconfig
+
+Sauvegarder la configuration :
+
+    make -C buildroot O=$PWD/output savedefconfig BR2_DEFCONFIG=$PWD/kbrd-os/configs/kbrd_defconfig
+
+
+### Configuration du noyau
+
+Modifier la configuration :
+
+    cd kbrd
+    make -C buildroot O=$PWD/output linux-menuconfig
+
+Sauvegarder la configuration :
+
+    make -C buildroot O=$PWD/output linux-update-defconfig
+
+
+### Configuration de busybox
+
+Modifier la configuration :
+
+    cd kbrd
+    make -C buildroot O=$PWD/output busybox-menuconfig
+
+Sauvegarder la configuration :
+
+    make -C buildroot O=$PWD/output busybox-update-config
+
+
+
 
 ## Cloner kbrd-os
 Voir la partie git pour la clé
@@ -18,22 +58,7 @@ git clone git@github.com:ubikyo/kbrd-os.git
 ## Définir kbrd-os comme projet externe
 export BR2_EXTERNAL=$PWD/kbrd-os
 
-## Créer une configuration depuis le defconfig dans le répertoire output
-make -C buildroot O=$PWD/output BR2_EXTERNAL=$PWD/kbrd-os kbrd_defconfig
 
-# Si nécessaire
-
-## Menuconfig pour modifier les options du système
-make -C buildroot O=$PWD/output menuconfig
-make -C buildroot O=$PWD/output savedefconfig BR2_DEFCONFIG=$PWD/kbrd-os/configs/kbrd_defconfig
-
-## Menuconfig pour modifier le noyau    
-make -C buildroot O=$PWD/output linux-menuconfig
-make -C buildroot O=$PWD/output linux-update-defconfig
-
-## Menuconfig pour modifier busybox
-make -C buildroot O=$PWD/output busybox-menuconfig
-make -C buildroot O=$PWD/output busybox-update-config
 
 ## Recompiler python (si ajout de modules)
 make -C buildroot O=$PWD/output python3-dirclean
