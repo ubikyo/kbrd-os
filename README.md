@@ -1,16 +1,28 @@
-# KBRD OS
-Système d'exploitation à destination d'un raspberry CM4.
+# KBRD-OS
+Système d'exploitation pour le clavier basé sur un raspberry CM4.
 
-## Développement
-Pour le développement, le rasberry est associé à une carte Waveshare [CM4-IO-BASE-A](https://www.waveshare.com/wiki/CM4-IO-BASE-A) et un écran Wareshare [10.1-DSI-TOUCH-A](https://www.waveshare.com/wiki/10.1-DSI-TOUCH-A). Uu adaptateur USB to TTL [SH-U07A](https://www.deshide.com/product-details_SH-U07A.html) est connecté entre les ports GND/RX/TX de l'adaptateur et les ports GND/TX/RX du CM4-IO-BASE-A pour obtenir la console **ttyAMA0**.
+## Compilation
 
-### Workspace
+Compiler KBRD-OS depuis le projet [KBRD](https://github.com/ubikyo/kbrd)
 
-Créer une VM type Ubuntu et créer un dossier
+## Transfert vers le raspberry
+
+Vérifier que l'image est disponible dans le dossier **/output/images/kbrd.img**. Connecter via le port USBC, le raspberry, sur l'ordinateur avec l'interrupteur **BOOT** activé. 
+
+Installer pv :
+
+    sudo apt install pv :
+
+Lancer le transfert :
+
+    ./transfert.sh
+
+Une fois terminé on désactive le mode **BOOT** boot via l'interrupteur et on redémarre le raspberry.
 
 
+## Modification de la configuration
 
-### Configuration des options du système
+### Système
 
 Modifier la configuration :
 
@@ -21,8 +33,7 @@ Sauvegarder la configuration :
 
     make -C buildroot O=$PWD/output savedefconfig BR2_DEFCONFIG=$PWD/kbrd-os/configs/kbrd_defconfig
 
-
-### Configuration du noyau
+### Noyau
 
 Modifier la configuration :
 
@@ -33,8 +44,7 @@ Sauvegarder la configuration :
 
     make -C buildroot O=$PWD/output linux-update-defconfig
 
-
-### Configuration de busybox
+### Busybox
 
 Modifier la configuration :
 
@@ -44,116 +54,3 @@ Modifier la configuration :
 Sauvegarder la configuration :
 
     make -C buildroot O=$PWD/output busybox-update-config
-
-
-
-
-## Cloner kbrd-os
-Voir la partie git pour la clé
-
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/jquintard
-git clone git@github.com:ubikyo/kbrd-os.git
-
-## Définir kbrd-os comme projet externe
-export BR2_EXTERNAL=$PWD/kbrd-os
-
-
-
-## Recompiler python (si ajout de modules)
-make -C buildroot O=$PWD/output python3-dirclean
-make -C buildroot O=$PWD/output python3
-
-## On compile
-./build-debug.sh
-./build-dev.sh
-./build-prod.sh
-    
-## Réinstaller un package
-make -C buildroot O=$PWD/output kbrd-ui-reinstall V=1
-
-# Nettoyage 
-## soft
-make -C buildroot O=$PWD/output clean
-
-## Reset complet
-make -C buildroot O=$PWD/output distclean
-
-# SSH
-
-## Création d'un clé
-ssh-keygen -t ed25519 -a 100 -f ~/.ssh/kbrd -C "kbrd"
-chmod 600 ~/.ssh/kbrd
-chmod 644 ~/.ssh/kbrd.pub
-
-## Modifier .ssh/config
-nano ~/.ssh/config
-
-Host kbrd
-    HostName 172.16.12.200
-    User kbrd
-    StrictHostKeyChecking no
-    IdentityFile ~/.ssh/kbrd
-    IdentitiesOnly yes
-
-## Récupération de la clé publique
-nano ~/.ssh/kbrd.pub
-
-## Se connecter en SFTP
-sftp -i ~/.ssh/kbrd kbrd@172.16.12.200
-
-## Se connecter via SSH (après avoir créé .ssh/config)
-ssh-keygen -f '/Users/jquintard/.ssh/known_hosts' -R '192.168.1.142'
-ssh kbrd
-
-# GIT
-
-## Créer une clé
-ssh-keygen -t ed25519 -a 100 -f ~/.ssh/jquintard -C "jquintard"
-
-## Ajouter cette clé à l'agent
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/jquintard
-
-## Récupérer la clé publique
-cat ~/.ssh/jquintard.pub
-
-## Dans github
-Settings
-SSH and GPG keys
-New SSH key
-De type authentication
-Coller la clé publique
-
-# Tester l'accès
-ssh -T git@github.com
-
-# Forcer git à utiliser la clé SSH (si permission denied sur vscode)
-git config --local core.sshCommand "ssh -i ~/.ssh/jquintard -o IdentitiesOnly=yes"
-
-# Modifier l'accès au dépôt via SSH
-git remote set-url origin git@github.com:ubikyo/kbrd-os.git
-git remote set-url origin git@github.com:ubikyo/kbrd-ui.git
-git remote -v
-
-# Bootchart
-
-## Installation du client
-sudo apt install python3-cairo
-git clone https://github.com/xrmx/bootchart.git
-cp -v bootchart/pybootchartgui/main.py.in bootchart/pybootchartgui/main.py
-
-## Récupérer le fichier
-scp kbrd:/var/log/bootlog.tgz resources/bootlog.tgz
-python3 bootchart/pybootchartgui.py -f png -o resources/ resources/bootlog.tgz
-
-
-
-# Exporter vers l'EMMC
-./rpiboot -d mass-storage-gadget64/
-diskutil list
-sudo -i
-diskutil unmountDisk /dev/disk5
-pv /Volumes/kbrd/output/images/kbrd.img | sudo dd of=/dev/rdisk5 bs=4m
-sync
-diskutil eject /dev/disk5

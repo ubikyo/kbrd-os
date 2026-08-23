@@ -1,9 +1,3 @@
-################################################################################
-#
-# python-kivy
-#
-################################################################################
-
 PYTHON_KIVY_VERSION = 2.3.1
 PYTHON_KIVY_SOURCE = Kivy-$(PYTHON_KIVY_VERSION).tar.gz
 PYTHON_KIVY_SITE = https://files.pythonhosted.org/packages/source/K/Kivy
@@ -26,6 +20,7 @@ PYTHON_KIVY_DEPENDENCIES = \
 	libegl
 
 PYTHON_KIVY_ENV = \
+	PYTHONPATH="$(HOST_DIR)/lib/python-kivy:$(HOST_DIR)/lib/python3.14/site-packages" \
 	USE_SDL2=1 \
 	USE_X11=0 \
 	USE_OPENGL_ES2=1 \
