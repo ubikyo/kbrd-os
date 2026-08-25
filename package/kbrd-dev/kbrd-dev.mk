@@ -20,6 +20,11 @@ define KBRD_DEV_INSTALL_RESOURCES
 	cp -a \
 		$(@D)/resources/. \
 		$(TARGET_DIR)/usr/share/kbrd/
+
+	mkdir -p $(TARGET_DIR)/usr/share/kbrd/plugins
+	cp -a \
+		$(BR2_EXTERNAL_KBRD_PATH)/../kbrd-plugins/src/. \
+		$(TARGET_DIR)/usr/share/kbrd/plugins/
 endef
 
 define KBRD_DEV_PERMISSIONS

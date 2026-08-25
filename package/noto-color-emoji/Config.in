@@ -1,0 +1,6 @@
+config BR2_PACKAGE_NOTO_COLOR_EMOJI
+	bool "noto-color-emoji"
+	help
+	  Noto Color Emoji font with CBDT/CBLC bitmap glyphs.
+
+	  https://github.com/googlefonts/noto-emoji
