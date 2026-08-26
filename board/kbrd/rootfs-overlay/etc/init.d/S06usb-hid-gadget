@@ -1,0 +1,101 @@
+#!/bin/sh
+
+GADGET=/sys/kernel/config/usb_gadget/kbrd
+FUNCTION="$GADGET/functions/hid.usb0"
+CONFIG="$GADGET/configs/c.1"
+
+mount_configfs()
+{
+    if ! grep -q " /sys/kernel/config configfs " /proc/mounts; then
+        mkdir -p /sys/kernel/config
+        mount -t configfs none /sys/kernel/config
+    fi
+}
+
+start()
+{
+    printf "Starting KBRD USB HID gadget: "
+
+    modprobe libcomposite || {
+        echo "FAIL"
+        return 1
+    }
+    mount_configfs || {
+        echo "FAIL"
+        return 1
+    }
+
+    if [ -d "$GADGET" ]; then
+        echo "already configured"
+        return 0
+    fi
+
+    mkdir -p "$GADGET"
+    printf '0x1d6b' > "$GADGET/idVendor"
+    printf '0x0104' > "$GADGET/idProduct"
+    printf '0x0100' > "$GADGET/bcdDevice"
+    printf '0x0200' > "$GADGET/bcdUSB"
+
+    mkdir -p "$GADGET/strings/0x409"
+    printf 'KBRD0001' > "$GADGET/strings/0x409/serialnumber"
+    printf 'Ubikyo' > "$GADGET/strings/0x409/manufacturer"
+    printf 'KBRD' > "$GADGET/strings/0x409/product"
+
+    mkdir -p "$CONFIG/strings/0x409"
+    printf 'Keyboard' > "$CONFIG/strings/0x409/configuration"
+    printf '250' > "$CONFIG/MaxPower"
+
+    mkdir -p "$FUNCTION"
+    printf '1' > "$FUNCTION/protocol"
+    printf '1' > "$FUNCTION/subclass"
+    printf '8' > "$FUNCTION/report_length"
+    printf '\005\001\011\006\241\001\005\007\031\340\051\347\025\000\045\001\165\001\225\010\201\002\225\001\165\010\201\003\225\005\165\001\005\010\031\001\051\005\221\002\225\001\165\003\221\003\225\006\165\010\025\000\045\145\005\007\031\000\051\145\201\000\300' > "$FUNCTION/report_desc"
+
+    ln -s "$FUNCTION" "$CONFIG/hid.usb0"
+
+    for udc_path in /sys/class/udc/*; do
+        if [ -e "$udc_path" ]; then
+            printf '%s' "${udc_path##*/}" > "$GADGET/UDC"
+            echo "OK"
+            return 0
+        fi
+    done
+
+    echo "no UDC"
+    return 1
+}
+
+stop()
+{
+    printf "Stopping KBRD USB HID gadget: "
+
+    if [ ! -d "$GADGET" ]; then
+        echo "not configured"
+        return 0
+    fi
+
+    printf '' > "$GADGET/UDC"
+    rm -f "$CONFIG/hid.usb0"
+    rmdir "$FUNCTION"
+    rmdir "$CONFIG/strings/0x409"
+    rmdir "$CONFIG"
+    rmdir "$GADGET/strings/0x409"
+    rmdir "$GADGET"
+    echo "OK"
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop && start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac

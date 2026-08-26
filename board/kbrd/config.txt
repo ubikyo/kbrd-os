@@ -17,6 +17,9 @@ kernel=Image
 dtparam=i2c_vc=on
 dtoverlay=disable-bt
 
+# --- USB-C : clavier USB HID en fonctionnement normal ---
+dtoverlay=dwc2,dr_mode=peripheral
+
 # --- DRM / GPU / écran DSI ---
 dtoverlay=vc4-kms-v3d
 dtoverlay=vc4-kms-dsi-waveshare-panel-v2,10_1_inch_a
