@@ -1,6 +1,5 @@
 source "$BR2_EXTERNAL_KBRD_OS_PATH/package/kbrd-web/Config.in"
 source "$BR2_EXTERNAL_KBRD_OS_PATH/package/kbrd-api/Config.in"
 source "$BR2_EXTERNAL_KBRD_OS_PATH/package/kbrd-dev/Config.in"
-source "$BR2_EXTERNAL_KBRD_OS_PATH/package/noto-color-emoji/Config.in"
 source "$BR2_EXTERNAL_KBRD_OS_PATH/package/python-kivy/Config.in"
 source "$BR2_EXTERNAL_KBRD_OS_PATH/package/python-filetype/Config.in"

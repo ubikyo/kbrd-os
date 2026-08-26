@@ -4,7 +4,6 @@ config BR2_PACKAGE_KBRD_DEV
 
 	select BR2_PACKAGE_PYTHON_KIVY
 	select BR2_PACKAGE_PYTHON_PILLOW
-	select BR2_PACKAGE_NOTO_COLOR_EMOJI
 
 	help
 	  KBRD graphical user interface.

@@ -1,1 +1,1 @@
-root=/dev/mmcblk0p2 rootfstype=ext4 rootwait loglevel=7 vt.global_cursor_default=0 consoleblank=0 console=ttyAMA0,115200 ipv6.disable=1 init=/sbin/bootchartd video=DSI-1:800x1280@60,rotate=90
+root=/dev/mmcblk0p2 rootfstype=ext4 rootwait console=tty3 quiet loglevel=3 vt.global_cursor_default=0 consoleblank=0 console=ttyAMA0,115200 ipv6.disable=1 video=DSI-1:800x1280@60,rotate=90
