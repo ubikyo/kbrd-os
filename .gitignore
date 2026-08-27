@@ -1,3 +1,5 @@
 .DS_Store
 ._*
 board/kbrd/rootfs-overlay/home/kbrd/.ssh/authorized_keys
+board/kbrd/cmdline.txt
+*.pyc
