@@ -1,0 +1,49 @@
+From 4ef1a3349945fc6db5f04fa2910a43ebd0c744ca Mon Sep 17 00:00:00 2001
+From: KBRD <dev@ubikyo.com>
+Date: Wed, 26 Aug 2026 20:00:00 +0000
+Subject: [PATCH] gstplayer: preserve video alpha and disable audio
+
+KBRD renders videos as OpenGL textures layered on keys. Request RGBA from
+GStreamer and upload four-channel textures so VP8/VP9 WebM alpha survives.
+Only enable the playbin video flag because KBRD intentionally has no audio.
+---
+ kivy/core/video/video_gstplayer.py | 4 ++--
+ kivy/lib/gstplayer/_gstplayer.h    | 6 +++---
+ kivy/lib/gstplayer/_gstplayer.pyx  | 5 ++++-
+ 3 files changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/kivy/core/video/video_gstplayer.py b/kivy/core/video/video_gstplayer.py
+--- a/kivy/core/video/video_gstplayer.py
++++ b/kivy/core/video/video_gstplayer.py
+@@ -137 +137 @@ class VideoGstplayer(VideoBase):
+-                                           colorfmt='rgb')
++                                           colorfmt='rgba')
+@@ -144 +144 @@ class VideoGstplayer(VideoBase):
+-                data, size=(width, height), colorfmt='rgb')
++                data, size=(width, height), colorfmt='rgba')
+diff --git a/kivy/lib/gstplayer/_gstplayer.h b/kivy/lib/gstplayer/_gstplayer.h
+--- a/kivy/lib/gstplayer/_gstplayer.h
++++ b/kivy/lib/gstplayer/_gstplayer.h
+@@ -72 +72 @@ static GstFlowReturn c_on_appsink_sample(GstElement *appsink, callback_data_t *d
+-	width3 = width * 3;
++	width3 = width * 4;
+@@ -77 +77 @@ static GstFlowReturn c_on_appsink_sample(GstElement *appsink, callback_data_t *d
+-		size = (gint)mapinfo.size;
++		size = width * height * 4;
+@@ -86 +86 @@ static GstFlowReturn c_on_appsink_sample(GstElement *appsink, callback_data_t *d
+-		size = width * height * 3;
++		size = width * height * 4;
+diff --git a/kivy/lib/gstplayer/_gstplayer.pyx b/kivy/lib/gstplayer/_gstplayer.pyx
+--- a/kivy/lib/gstplayer/_gstplayer.pyx
++++ b/kivy/lib/gstplayer/_gstplayer.pyx
+@@ -191 +191 @@ cdef class GstPlayer:
+-            g_object_set_caps(self.appsink, 'video/x-raw,format=RGB')
++            g_object_set_caps(self.appsink, 'video/x-raw,format=RGBA')
+@@ -210,2 +210,5 @@ cdef class GstPlayer:
+         g_object_set_int(self.pipeline, 'async-handling', 1)
++        # GST_PLAY_FLAG_VIDEO. KBRD intentionally does not decode or output
++        # audio tracks embedded in uploaded files.
++        g_object_set_int(self.playbin, 'flags', 1)
+         py_uri = <bytes>self.uri.encode('utf-8')
+-- 
+2.43.0

@@ -1,14 +1,14 @@
 config BR2_PACKAGE_PYTHON_KIVY
 	bool "python-kivy"
 	depends on BR2_PACKAGE_PYTHON3
+	depends on BR2_PACKAGE_HAS_LIBGLES
+	depends on BR2_PACKAGE_HAS_LIBEGL
 
     select BR2_PACKAGE_PYTHON_FILETYPE
 	select BR2_PACKAGE_SDL2
 	select BR2_PACKAGE_SDL2_IMAGE
 	select BR2_PACKAGE_SDL2_MIXER
 	select BR2_PACKAGE_SDL2_TTF
-	select BR2_PACKAGE_HAS_LIBGLES
-	select BR2_PACKAGE_HAS_LIBEGL
 
 	help
 	  Kivy graphical user interface framework.

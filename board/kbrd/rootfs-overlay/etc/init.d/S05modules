@@ -3,6 +3,7 @@ case "$1" in
   start)
     printf "Loading kernel modules: "
     modprobe brcmfmac
+    modprobe bcm2835-codec
     ;;
   stop)
     ;;
