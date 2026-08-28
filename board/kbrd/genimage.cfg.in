@@ -12,8 +12,7 @@ image data.ext4 {
     label = "data"
   }
   srcpath = "${BOARD_DIR}/datafs-overlay"
-  size = 10M
-  # size = 100M
+  size = 100M
 }
 
 image kbrd.img {
@@ -38,8 +37,7 @@ image kbrd.img {
   	partition data {
     	partition-type = 0x83
     	image = "data.ext4"
-    	size = 10M
-		# size = 100M
+		size = 1G
 		# A coller sur le image.data
 	}	
 }
