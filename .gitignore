@@ -2,4 +2,5 @@
 ._*
 board/kbrd/rootfs-overlay/home/kbrd/.ssh/authorized_keys
 board/kbrd/cmdline.txt
+board/kbrd/rootfs-overlay/var/lib/iwd/*.psk
 *.pyc
