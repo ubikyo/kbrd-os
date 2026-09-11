@@ -15,6 +15,9 @@ BOARD_NAME="$(basename "${BOARD_DIR}")"
 GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
 # Chemin de la configuration genimage.cfg
 GENIMAGE_CFG="${BINARIES_DIR}/genimage.cfg"
+# Racine du projet, deux niveaux au-dessus de "board/kbrd/" : c'est de là
+# que viennent les ressources des autres dépôts embarquées dans l'image.
+PROJECT_DIR="${BOARD_DIR}/../../.."
 
 
 # --------------------------------------------------------------------------------
@@ -24,6 +27,7 @@ GENIMAGE_CFG="${BINARIES_DIR}/genimage.cfg"
 cleanup() {
   rm -rf "${GENIMAGE_TMP}"
   rm -rf "${ROOTPATH_TMP:-}"
+  rm -rf "${DATAFS_TMP:-}"
 }
 trap cleanup EXIT
 
@@ -74,6 +78,23 @@ cp -f \
   "${BINARIES_DIR}/rpi-firmware/overlays/vc4-kms-dsi-waveshare-panel-v2.dtbo"
 
 # --------------------------------------------------------------------------------
+# On assemble le contenu de la partition /data
+# --------------------------------------------------------------------------------
+#
+# Une image fraîchement flashée doit être complète : les polices viennent
+# de KBRD-WEB (qui les déploie aussi vers /data/fonts avec son propre
+# Makefile, pour une mise à jour sans reflash), le reste de l'arborescence
+# de "datafs-overlay". /data/media reste vide — il ne contient que ce qui a
+# été uploadé sur l'appareil.
+
+DATAFS_TMP="$(mktemp -d)"
+cp -a "${BOARD_DIR}/datafs-overlay/." "${DATAFS_TMP}/"
+
+mkdir -p "${DATAFS_TMP}/fonts"
+cp -a "${PROJECT_DIR}/kbrd-web/data/fonts/." "${DATAFS_TMP}/fonts/"
+
+
+# --------------------------------------------------------------------------------
 # On génère l'image finale avec genimage
 # --------------------------------------------------------------------------------
 
@@ -81,6 +102,9 @@ ROOTPATH_TMP="$(mktemp -d)"
 rm -rf "${GENIMAGE_TMP}"
 
 export BOARD_DIR
+# Lu par genimage.cfg.in : la partition /data est bâtie depuis ce dossier
+# assemblé ci-dessus, pas directement depuis "datafs-overlay".
+export DATAFS_TMP
 
 genimage \
 	--rootpath "${ROOTPATH_TMP}"   \

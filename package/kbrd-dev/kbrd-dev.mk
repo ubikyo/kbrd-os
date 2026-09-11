@@ -14,13 +14,11 @@ define KBRD_DEV_INSTALL_INIT_SYSV
 		$(TARGET_DIR)/etc/init.d/S70kbrd-dev
 endef
 
+# KBRD-DEV used to carry a `resources/` folder copied wholesale into
+# `/usr/share/kbrd` — the fonts now live in KBRD-WEB's own `data/fonts`
+# (deployed to `/data/fonts`) and the splash image on the data partition
+# (`datafs-overlay/private`), so only the plugins are installed here.
 define KBRD_DEV_INSTALL_RESOURCES
-	mkdir -p $(TARGET_DIR)/usr/share/kbrd
-
-	cp -a \
-		$(@D)/resources/. \
-		$(TARGET_DIR)/usr/share/kbrd/
-
 	rm -rf $(TARGET_DIR)/usr/share/kbrd/plugins
 	mkdir -p $(TARGET_DIR)/usr/share/kbrd/plugins
 	cp -a \

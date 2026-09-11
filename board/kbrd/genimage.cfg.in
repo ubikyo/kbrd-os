@@ -11,7 +11,7 @@ image data.ext4 {
   ext4 {
     label = "data"
   }
-  srcpath = "${BOARD_DIR}/datafs-overlay"
+  srcpath = "${DATAFS_TMP}"
   size = 100M
 }
 
