@@ -1,0 +1,471 @@
+#!/bin/sh
+#
+# Le réseau du clavier, en un seul endroit : le point d'accès du premier
+# démarrage, la connexion au Wi-Fi enregistré depuis KBRD-WEB, et la
+# lecture de l'état que KBRD-API rend sur /api/network.
+#
+# Tout passe par iwd, déjà le démon Wi-Fi de l'image. En mode station il
+# gère aussi l'adresse (EnableNetworkConfiguration, dans
+# /etc/iwd/main.conf) ; en mode AP il sert son propre DHCP. Il n'y a donc
+# ni hostapd ni dnsmasq ici, et le basculement entre les deux modes est
+# une propriété à poser sur l'interface, pas un démon à arrêter.
+#
+# Deux fichiers de configuration, même format « CLE=valeur » :
+#
+#   /etc/kbrd/network.conf       les valeurs d'usine, livrées avec l'image
+#   /data/network/network.conf   ce que l'utilisateur a enregistré
+#
+# Le second l'emporte, clé par clé. Aucun des deux n'est « sourcé » : les
+# valeurs du second viennent d'une requête HTTP et n'ont rien à faire dans
+# un shell — elles sont lues au sed, une par une.
+#
+# Appelé par /etc/init.d/S72kbrd-network au démarrage, et par KBRD-API
+# (sudo) quand l'onglet Network des réglages est enregistré.
+
+set -u
+
+# iwctl et iw ne vivent pas dans le même dossier (/usr/bin et /usr/sbin) :
+# posé ici plutôt que laissé à l'init ou à la « secure_path » de sudo, qui
+# n'ont pas de raison de s'accorder.
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
+DEFAULTS=/etc/kbrd/network.conf
+CONFIG_DIR=/data/network
+CONFIG="$CONFIG_DIR/network.conf"
+IWD_DIR=/var/lib/iwd
+AP_DIR="$IWD_DIR/ap"
+
+# Ce que fait le script, horodaté. S72kbrd-network le range dans
+# /var/log/kbrd-network.log : le Wi-Fi du démarrage se joue en tâche de
+# fond, après l'affichage, et sans cette trace une association qui échoue
+# ne laisse rien derrière elle. Sur stderr, pour ne pas se mêler à ce que
+# « status » et « scan » rendent à KBRD-API.
+log() {
+	printf '%s %s\n' "$(date '+%H:%M:%S')" "$*" >&2
+}
+
+# Le caractère d'échappement, monté ici plutôt qu'écrit dans les motifs :
+# iwctl colore toujours ses tableaux, y compris hors terminal, et tout ce
+# qu'on lui reprend doit en être débarrassé avant d'être découpé.
+ESC=$(printf '\033')
+
+
+# --------------------------------------------------------------------------------
+# Configuration
+# --------------------------------------------------------------------------------
+
+conf_read() { # conf_read <clé> <fichier>
+	[ -r "$2" ] || return 0
+	sed -n "s/^$1=//p" "$2" | tail -n 1
+}
+
+conf() { # conf <clé> : /data l'emporte sur /etc
+	value=$(conf_read "$1" "$CONFIG")
+	[ -n "$value" ] || value=$(conf_read "$1" "$DEFAULTS")
+	printf '%s' "$value"
+}
+
+INTERFACE=$(conf INTERFACE)
+[ -n "$INTERFACE" ] || INTERFACE=wlan0
+
+# Le dossier de configuration appartient à kbrd : c'est KBRD-API, qui
+# tourne sous cet utilisateur, qui y écrit ce que l'interface enregistre.
+# Ce script, lui, y passe en root et le créerait sinon en root:root.
+ensure_config_dir() {
+	[ -d "$CONFIG_DIR" ] && return 0
+	mkdir -p "$CONFIG_DIR" || return 1
+	chown kbrd:kbrd "$CONFIG_DIR" 2>/dev/null || true
+	chmod 0755 "$CONFIG_DIR"
+}
+
+
+# --------------------------------------------------------------------------------
+# Identité du point d'accès
+# --------------------------------------------------------------------------------
+
+# Les quatre derniers caractères du numéro de série du CM4, ou à défaut de
+# son adresse MAC : de quoi distinguer deux claviers côte à côte sans rien
+# avoir à provisionner à la fabrication.
+device_suffix() {
+	serial=$(sed -n 's/^Serial[[:space:]]*:[[:space:]]*//p' /proc/cpuinfo | tail -n 1)
+	if [ -z "$serial" ]; then
+		serial=$(cat "/sys/class/net/$INTERFACE/address" 2>/dev/null | tr -d ':')
+	fi
+	[ -n "$serial" ] || serial=0000
+	printf '%s' "$serial" | tail -c 4
+}
+
+hotspot_ssid() {
+	ssid=$(conf HOTSPOT_SSID)
+	if [ -z "$ssid" ]; then
+		prefix=$(conf HOTSPOT_SSID_PREFIX)
+		[ -n "$prefix" ] || prefix=KBRD
+		ssid="$prefix-$(device_suffix)"
+	fi
+	printf '%s' "$ssid"
+}
+
+
+# --------------------------------------------------------------------------------
+# Profils iwd
+# --------------------------------------------------------------------------------
+
+# iwd nomme le fichier d'un réseau d'après son SSID, et bascule en
+# « =<hexadécimal> » dès qu'un caractère sort de [A-Za-z0-9_ -] (voir
+# storage_get_network_file_path dans ses sources). Écrire le profil
+# nous-mêmes plutôt que de laisser iwctl le créer est ce qui permet de
+# poser une IP statique *avant* la première association.
+iwd_basename() {
+	if [ -n "$(printf '%s' "$1" | tr -d 'A-Za-z0-9_ -')" ]; then
+		printf '=%s' "$(printf '%s' "$1" | od -An -v -tx1 | tr -d ' \n')"
+	else
+		printf '%s' "$1"
+	fi
+}
+
+write_station_profile() { # write_station_profile <ssid>
+	mkdir -p "$IWD_DIR"
+
+	# Sans clé, le réseau est ouvert : iwd le lit dans un « .open » et
+	# n'y attend aucune section [Security].
+	passphrase=$(conf PASSPHRASE)
+	base="$IWD_DIR/$(iwd_basename "$1")"
+
+	# Les deux sont effacés d'abord : un réseau qui passe de protégé à
+	# ouvert (ou l'inverse) laisserait sinon l'ancien profil derrière
+	# lui, et c'est celui-là qu'iwd rejouerait.
+	rm -f "$base.psk" "$base.open"
+
+	if [ -n "$passphrase" ]; then
+		file="$base.psk"
+	else
+		file="$base.open"
+	fi
+
+	umask 077
+	{
+		if [ -n "$passphrase" ]; then
+			printf '[Security]\n'
+			printf 'Passphrase=%s\n' "$passphrase"
+		fi
+
+		if [ "$(conf IPV4_MODE)" = static ]; then
+			# Sans cette section, iwd prend l'adresse au DHCP du
+			# réseau rejoint : le mode DHCP n'a donc rien à écrire.
+			printf '\n[IPv4]\n'
+			printf 'Address=%s\n' "$(conf IPV4_ADDRESS)"
+			printf 'Netmask=%s\n' "$(conf IPV4_NETMASK)"
+
+			gateway=$(conf IPV4_GATEWAY)
+			[ -n "$gateway" ] && printf 'Gateway=%s\n' "$gateway"
+
+			dns=$(conf IPV4_DNS1)
+			dns2=$(conf IPV4_DNS2)
+			if [ -n "$dns" ] && [ -n "$dns2" ]; then
+				dns="$dns,$dns2"
+			elif [ -z "$dns" ]; then
+				dns=$dns2
+			fi
+			[ -n "$dns" ] && printf 'DNSList=%s\n' "$dns"
+		fi
+
+		printf '\n[Settings]\nAutoConnect=true\n'
+	} > "$file"
+}
+
+write_ap_profile() { # write_ap_profile <ssid>
+	mkdir -p "$AP_DIR"
+
+	# « start-profile » lit littéralement ap/<SSID>.ap, sans l'encodage
+	# hexadécimal des profils de station : le SSID du hotspot est le
+	# nôtre, et ne contient que des caractères de nom de fichier.
+	umask 077
+	{
+		printf '[General]\n'
+		printf 'Channel=%s\n' "$(conf HOTSPOT_CHANNEL)"
+
+		printf '\n[Security]\n'
+		printf 'Passphrase=%s\n' "$(conf HOTSPOT_PASSPHRASE)"
+
+		# C'est cette section qui allume le serveur DHCP d'iwd, et
+		# avec elle l'adresse fixe sur laquelle on rejoint
+		# l'interface. Ni Gateway ni DNSList : le clavier ne route
+		# rien, et annoncer une route par défaut qui ne mène nulle
+		# part couperait l'Internet du poste qui s'y connecte.
+		printf '\n[IPv4]\n'
+		printf 'Address=%s\n' "$(conf HOTSPOT_ADDRESS)"
+		printf 'Netmask=%s\n' "$(conf HOTSPOT_NETMASK)"
+
+		range=$(conf HOTSPOT_RANGE)
+		[ -n "$range" ] && printf 'IPRange=%s\n' "$range"
+
+		lease=$(conf HOTSPOT_LEASE_TIME)
+		[ -n "$lease" ] && printf 'LeaseTime=%s\n' "$lease"
+	} > "$AP_DIR/$1.ap"
+}
+
+
+# --------------------------------------------------------------------------------
+# Pilotage d'iwd
+# --------------------------------------------------------------------------------
+
+# iwctl parle à iwd sur le bus : au démarrage il est lancé dans la foulée
+# du démon, qui n'a pas forcément fini de s'y annoncer ni de découvrir
+# l'interface.
+wait_for_iwd() {
+	log "attente d'iwd sur $INTERFACE"
+	tries=0
+	while [ "$tries" -lt 30 ]; do
+		if iwctl device list 2>/dev/null | grep -q "$INTERFACE"; then
+			return 0
+		fi
+		sleep 1
+		tries=$((tries + 1))
+	done
+	log "iwd ne présente pas $INTERFACE"
+	return 1
+}
+
+set_mode() { # set_mode station|ap
+	current=$(interface_mode)
+	[ "$current" = "$1" ] && return 0
+
+	# iwd refuse le changement de mode d'une interface qui a encore un
+	# point d'accès levé ou une association en cours.
+	case "$current" in
+		ap) iwctl ap "$INTERFACE" stop >/dev/null 2>&1 ;;
+		station) iwctl station "$INTERFACE" disconnect >/dev/null 2>&1 ;;
+	esac
+
+	iwctl device "$INTERFACE" set-property Mode "$1" >/dev/null 2>&1
+	# Le changement de mode recrée l'interface netdev sous iwd ; la
+	# commande suivante arriverait sinon sur celle qui vient de partir.
+	sleep 2
+	iwctl device "$INTERFACE" set-property Powered on >/dev/null 2>&1
+}
+
+station_up() { # station_up <ssid>
+	write_station_profile "$1"
+	set_mode station
+	iwctl station "$INTERFACE" scan >/dev/null 2>&1
+	# Laisse les BSS remonter : demander la connexion à un réseau qu'iwd
+	# n'a pas encore vu échoue immédiatement.
+	sleep 3
+	iwctl station "$INTERFACE" connect "$1" >/dev/null 2>&1
+}
+
+hotspot_up() {
+	ssid=$(hotspot_ssid)
+	write_ap_profile "$ssid"
+	set_mode ap
+	iwctl ap "$INTERFACE" start-profile "$ssid" >/dev/null 2>&1
+}
+
+wifi_down() {
+	case "$(interface_mode)" in
+		ap) iwctl ap "$INTERFACE" stop >/dev/null 2>&1 ;;
+		station) iwctl station "$INTERFACE" disconnect >/dev/null 2>&1 ;;
+	esac
+}
+
+
+# --------------------------------------------------------------------------------
+# État de l'interface
+# --------------------------------------------------------------------------------
+#
+# Lu avec « iw » plutôt qu'avec iwctl : les tableaux d'iwctl sont faits
+# pour être regardés, ceux-là se découpent.
+
+interface_mode() {
+	case "$(iw dev "$INTERFACE" info 2>/dev/null | sed -n 's/^[[:space:]]*type //p')" in
+		AP*) printf 'ap' ;;
+		managed) printf 'station' ;;
+		*) printf 'unknown' ;;
+	esac
+}
+
+interface_ssid() {
+	if [ "$(interface_mode)" = ap ]; then
+		iw dev "$INTERFACE" info 2>/dev/null | sed -n 's/^[[:space:]]*ssid //p' | head -n 1
+	else
+		iw dev "$INTERFACE" link 2>/dev/null | sed -n 's/^[[:space:]]*SSID: //p' | head -n 1
+	fi
+}
+
+interface_address() {
+	ip addr show "$INTERFACE" 2>/dev/null |
+		sed -n 's#.*inet \([0-9.]*\)/.*#\1#p' | head -n 1
+}
+
+interface_prefix() {
+	ip addr show "$INTERFACE" 2>/dev/null |
+		sed -n 's#.*inet [0-9.]*/\([0-9]*\).*#\1#p' | head -n 1
+}
+
+netmask_from_prefix() { # netmask_from_prefix <0-32>
+	prefix=$1
+	mask=
+	for _ in 1 2 3 4; do
+		if [ "$prefix" -ge 8 ]; then
+			octet=255
+			prefix=$((prefix - 8))
+		elif [ "$prefix" -le 0 ]; then
+			octet=0
+			prefix=0
+		else
+			case "$prefix" in
+				1) octet=128 ;; 2) octet=192 ;; 3) octet=224 ;;
+				4) octet=240 ;; 5) octet=248 ;; 6) octet=252 ;;
+				7) octet=254 ;;
+			esac
+			prefix=0
+		fi
+		mask="${mask:+$mask.}$octet"
+	done
+	printf '%s' "$mask"
+}
+
+default_gateway() {
+	ip route 2>/dev/null |
+		sed -n "s/^default via \([0-9.]*\).*dev $INTERFACE.*/\1/p" | head -n 1
+}
+
+# Rien en mode point d'accès : le clavier n'y annonce aucun DNS, et
+# /etc/resolv.conf garderait sinon ceux du dernier réseau rejoint.
+resolvers() {
+	[ "$(interface_mode)" = station ] || return 0
+	sed -n 's/^nameserver[[:space:]]*//p' /etc/resolv.conf 2>/dev/null |
+		head -n 2 | tr '\n' ',' | sed 's/,$//'
+}
+
+wait_for_address() { # wait_for_address <secondes>
+	elapsed=0
+	while [ "$elapsed" -lt "$1" ]; do
+		[ -n "$(interface_address)" ] && return 0
+		sleep 1
+		elapsed=$((elapsed + 1))
+	done
+	return 1
+}
+
+
+# --------------------------------------------------------------------------------
+# Commandes
+# --------------------------------------------------------------------------------
+
+# Le point d'accès, et le dernier mot du script : c'est là qu'on retombe
+# quand il n'y a rien à rejoindre, ou que ce qu'il y avait n'a pas
+# répondu.
+fallback() {
+	hotspot_up
+	status=$?
+	log "point d'accès « $(hotspot_ssid) » sur $(conf HOTSPOT_ADDRESS)"
+	exit "$status"
+}
+
+# Le chemin de démarrage, et celui d'un enregistrement depuis KBRD-WEB :
+# sans SSID enregistré on lève le hotspot, avec un SSID on tente le
+# réseau et on retombe sur le hotspot faute d'adresse. C'est cette
+# retombée qui rend le clavier récupérable après un changement de box.
+cmd_up() {
+	ensure_config_dir
+	wait_for_iwd || exit 1
+
+	ssid=$(conf SSID)
+	if [ -z "$ssid" ]; then
+		log "aucun réseau enregistré, point d'accès"
+		fallback
+	fi
+
+	timeout=$(conf CONNECT_TIMEOUT)
+	[ -n "$timeout" ] || timeout=30
+
+	log "connexion à « $ssid »"
+	station_up "$ssid"
+	if wait_for_address "$timeout"; then
+		log "connecté, adresse $(interface_address)"
+		exit 0
+	fi
+
+	log "pas d'adresse après ${timeout}s, retour au point d'accès"
+	fallback
+}
+
+cmd_hotspot() {
+	wait_for_iwd || exit 1
+	wifi_down
+	hotspot_up
+	exit $?
+}
+
+cmd_status() {
+	mode=$(interface_mode)
+	prefix=$(interface_prefix)
+
+	printf 'interface\t%s\n' "$INTERFACE"
+	printf 'mode\t%s\n' "$mode"
+	printf 'ssid\t%s\n' "$(interface_ssid)"
+	printf 'address\t%s\n' "$(interface_address)"
+	printf 'netmask\t%s\n' "${prefix:+$(netmask_from_prefix "$prefix")}"
+	printf 'gateway\t%s\n' "$(default_gateway)"
+	printf 'dns\t%s\n' "$(resolvers)"
+	printf 'hotspot_ssid\t%s\n' "$(hotspot_ssid)"
+	printf 'hotspot_address\t%s\n' "$(conf HOTSPOT_ADDRESS)"
+}
+
+# Une ligne « SSID<TAB>sécurité » par réseau vu. iwd sait scanner même en
+# mode AP — c'est précisément là qu'on en a besoin, puisque c'est depuis
+# le hotspot qu'on choisit le réseau à rejoindre.
+cmd_scan() {
+	wait_for_iwd || exit 1
+
+	if [ "$(interface_mode)" = ap ]; then
+		family=ap
+	else
+		family=station
+	fi
+
+	iwctl "$family" "$INTERFACE" scan >/dev/null 2>&1
+	sleep 4
+
+	# Les colonnes du tableau d'iwctl sont separees par au moins deux
+	# espaces (chaque cellule est completee a sa largeur, puis suivie de
+	# deux espaces — voir entry_append dans ses sources). On decoupe
+	# la-dessus plutot que sur des positions fixes : iwctl compte ses
+	# largeurs en colonnes d'affichage et remplit en octets, si bien
+	# qu'un SSID accentue decale toute position comptee en octets.
+	iwctl "$family" "$INTERFACE" get-networks 2>/dev/null |
+		sed "s/$ESC\[[0-9;]*m//g" |
+		awk '
+			/Network name/ { header = 1; next }
+			!header { next }
+
+			{
+				line = $0
+				sub(/^[ \t]+/, "", line)
+				# Le marqueur du reseau deja rejoint.
+				sub(/^> +/, "", line)
+				# Le trait qui ferme le tableau.
+				if (line ~ /^-+$/) next
+
+				# « No networks available » ne tient que sur une colonne.
+				if (split(line, column, /  +/) < 2) next
+				if (column[1] != "")
+					printf "%s\t%s\n", column[1], column[2]
+			}
+		'
+}
+
+case "${1:-}" in
+	up) cmd_up ;;
+	apply) cmd_up ;;
+	hotspot) cmd_hotspot ;;
+	down) wifi_down ;;
+	status) cmd_status ;;
+	scan) cmd_scan ;;
+	*)
+		echo "Usage: $0 {up|apply|hotspot|down|status|scan}" >&2
+		exit 1
+		;;
+esac

@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# Le Wi-Fi du clavier : réseau enregistré s'il y en a un, point d'accès
+# sinon (voir /usr/bin/kbrd-network, qui fait tout le travail).
+#
+# Placé après S70kbrd-dev, et avec lui S71iwd et S73nginx : l'association,
+# le DHCP et leurs délais d'attente ne retardent plus l'affichage du
+# clavier. Lancé en tâche de fond par-dessus le marché, parce qu'il
+# attend jusqu'à CONNECT_TIMEOUT secondes une adresse avant de retomber
+# sur le hotspot, et que rien dans la suite du démarrage ne l'attend.
+
+DAEMON="/usr/bin/kbrd-network"
+LOG="/var/log/kbrd-network.log"
+
+case "$1" in
+    start)
+        printf "Starting kbrd-network: "
+        # Repris à chaque démarrage : ce qui compte est ce qu'a fait
+        # celui-ci, et le fichier ne grossit donc jamais.
+        "$DAEMON" up > "$LOG" 2>&1 &
+        echo "OK"
+        ;;
+
+    stop)
+        printf "Stopping kbrd-network: "
+        "$DAEMON" down >/dev/null 2>&1
+        echo "OK"
+        ;;
+
+    restart)
+        $0 stop
+        $0 start
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0

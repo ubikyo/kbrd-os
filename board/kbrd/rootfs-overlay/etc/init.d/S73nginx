@@ -1,4 +1,9 @@
 #!/bin/sh
+#
+# KBRD-WEB, servi par nginx. Après S70kbrd-dev et le réseau (S71iwd,
+# S72kbrd-network) : l'interface graphique du clavier passe d'abord, et
+# ce serveur n'a de toute façon personne à servir tant qu'aucune
+# adresse n'est posée sur wlan0.
 case "$1" in
   start)
     echo "Starting nginx..."
